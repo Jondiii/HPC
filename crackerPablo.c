@@ -29,6 +29,24 @@ int compute_hash(char *str, unsigned char mdString[65]) {
   return 0;
 }
 
+void next(char* candidate, char*alpha) {
+  int done = 0;
+  for (int i = strlen(candidate) - 1; i >= 0 ; i--)
+  {
+    int pos = (int)(strchr(alpha, candidate[i]) - alpha); //Sacamos la posición de la letra en el alfabeto que tenemos
+    if (pos != strlen(alpha) - 1) {
+      candidate[i] = alpha[pos+1];
+      done = 1;
+      break;
+    } else {
+      candidate[i] = alpha[0];
+    }
+  if (!done) { // Si no hemos encontrado la clave, 
+    sprintf(candidate, "%c%s", alpha[0], candidate);
+  }
+  }
+}
+
 int main (int argc, char **argv) {
   char *avalue = NULL;
   char *dvalue = NULL;
