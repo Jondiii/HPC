@@ -4,24 +4,42 @@
 #include <openssl/sha.h>
 #include <omp.h>
 
-// Diccionario en español: cp /usr/share/dict/spanish dict.txt
 
+
+// Diccionario en español: cp /usr/share/dict/spanish dict.txt
+#define SIZE 32
 // Longitud máxima de la cadena de caracteres a generar
 #define MAX_LEN 4
 
 // Caracteres alfanuméricos permitidos
 const char alphanum[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
+int compute_hash(char *str, unsigned char mdString[65]) {
+  unsigned char digest[SIZE];
+  SHA256_CTX ctx;
+  int i;
+
+  SHA256_Init(&ctx);
+  SHA256_Update(&ctx, str, strlen(str));
+  SHA224_Final(digest, &ctx);
+
+  for (i = 0; i < SIZE; i++)
+    sprintf(&mdString[i*2], "%02x", (unsigned int)digest[i]);//sprintf imprime dentro del script
+
+  return 0;
+}
+
 // Función para generar todas las combinaciones posibles de caracteres
 void generate_strings(int len, char* str, int index) {
     int i;
     if (index == len) {
         // Hash de la cadena generada
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-        SHA256((const unsigned char*)str, len, hash);
+        char hashString[SIZE*2+1];
+        compute_hash(str, hashString);
+        //SHA256((const unsigned char*)str, len, hash);
         printf("Hash de '%s': ", str);
         for(i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-            printf("%02x", hash[i]);
+            printf("%02x", hashString[i]);
         }
         printf("\n");
         return;
