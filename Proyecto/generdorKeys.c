@@ -56,7 +56,7 @@ int main() {
     int i, j;
 
     // Inicialización de OpenMP
-    omp_set_num_threads(omp_get_num_procs());
+    //omp_set_num_threads(omp_get_num_procs());
 
     // Generación de todas las combinaciones de caracteres alfanuméricos
     for(len = 1; len <= MAX_LEN; len++) {
