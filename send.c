@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
    if (rank == 0) {
       printf("Manager: esperando el mensaje...\n");
       for (int i = 1; i < size; i++) {
-      MPI_Recv(&buf, 1, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status); //MPI_ANY_SOURCE
-      printf("Mensaje: %d\n", buf);
+         MPI_Recv(&buf, 1, MPI_INT, i, MPI_ANY_TAG, MPI_COMM_WORLD, &status); //MPI_ANY_SOURCE
+         printf("Mensaje: %d\n", buf);
       }
    } else {
       printf("Worker: mandando mensaje...\n");
