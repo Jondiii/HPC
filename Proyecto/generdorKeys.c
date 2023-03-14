@@ -39,9 +39,8 @@ void generate_strings(int len, char* str, int index) {
         //SHA256((const unsigned char*)str, len, hash);
         printf("Hash de '%s': ", str);
         for(i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-            printf("%02x", hashString[i]);
+            printf("%02x\n", hashString[i]);
         }
-        printf("\n");
         return;
     }
     for(i = 0; i < strlen(alphanum); i++) {
