@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
       printf("Soy el proceso %d y en la posición %d tengo %d\n", rank, i, recibidos[i]);
    }
    
-
    MPI_Finalize();
+
 return 0;
 }
