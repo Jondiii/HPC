@@ -2,6 +2,7 @@
     "files.associations": {
         "md5.h": "c",
         "stdint.h": "c",
-        "sha.h": "c"
+        "sha.h": "c",
+        "unistd.h": "c"
     }
 }
