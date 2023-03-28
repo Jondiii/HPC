@@ -13,9 +13,9 @@
 #define MAXCANDIDATE 256
 #define HASHSIZE 64
 #define CHUNK 10000
-// #define SALT 0
+#define SALT 0
 
-int compute_hash(char *str, unsigned char mdString[SIZE * 2 + 1])
+int compute_hash(char *str, unsigned char mdString[SIZE * 2 + 1], int salt)
 {
   unsigned char digest[SIZE];
   SHA256_CTX ctx;
@@ -26,7 +26,7 @@ int compute_hash(char *str, unsigned char mdString[SIZE * 2 + 1])
   SHA256_Final(digest, &ctx);
 
   for (i = 0; i < SIZE; i++)
-    sprintf(&mdString[i * 2], "%02x", (unsigned int)digest[i]); // Añadir posible salt creo que sería con Update (SHA256_Update())
+    sprintf(&mdString[i * 2], "%02x", (unsigned int)digest[i] + salt);
   mdString[SIZE * 2] = '\0';
 
   return 0;
@@ -61,16 +61,17 @@ int main(int argc, char **argv)
   char *dvalue = NULL;
   char *mvalue = NULL;
   char *nvalue = NULL;
-  // char *svalue = NULL; //value for salt
+  char *svalue = NULL; // value for salt
   char secreto[HASHSIZE + 1];
   char hashString[HASHSIZE + 1];
   char candidate[MAXCANDIDATE];
-  int n, m, c, index;
+  char curr_candidate[MAXCANDIDATE];
+  int n, m, c, s, index;
   int found = 0;
 
   opterr = 0;
 
-  while ((c = getopt(argc, argv, "a:d:m:n:")) != -1)
+  while ((c = getopt(argc, argv, "a:d:m:n:s:")) != -1)
     switch (c)
     {
     case 'a':
@@ -85,11 +86,11 @@ int main(int argc, char **argv)
     case 'n':
       nvalue = optarg;
       break;
-      //    case 's':
-      //      svalue = optarg;
-      //    break;
+    case 's':
+      svalue = optarg;
+      break;
     case '?':
-      if (optopt == 'a' || optopt == 'd' || optopt == 'm' || optopt == 'n' /*|| optopt == 's'*/)
+      if (optopt == 'a' || optopt == 'd' || optopt == 'm' || optopt == 'n' || optopt == 's')
         fprintf(stderr, "Option -%c requires an argument.\n", optopt);
       else if (isprint(optopt))
         fprintf(stderr, "Unknown option `-%c'.\n", optopt);
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
   {
     n = MIN;
   }
-  /*
+
   if (svalue != NULL)
   {
     s = atoi(svalue);
@@ -126,7 +127,6 @@ int main(int argc, char **argv)
   {
     s = SALT;
   }
-  */
 
   if (avalue == NULL)
   {
@@ -134,8 +134,8 @@ int main(int argc, char **argv)
     sprintf(avalue, "%s", ALPHA);
   }
 
-  printf("diccionario = %s, alfabeto = %s, max = %d min = %d \n",
-         dvalue, avalue, m, n); // añadir salt
+  printf("dict = %s, alphabet = %s, max = %d, min = %d, salt = %d  \n",
+         dvalue, avalue, m, n, s);
 
   if (argv[optind] != NULL)
   {
@@ -161,12 +161,13 @@ int main(int argc, char **argv)
           if (!found)
           {
             fscanf(dict, "%s\n", candidate);
-            compute_hash(candidate, hashString);
+            sprintf(curr_candidate, "%s", candidate);
+            compute_hash(candidate, hashString, s);
             cracked++;
             if (strcmp(hashString, secreto) == 0)
             {
               printf("PASSWORD FOUND!\n");
-              printf("SHA256(%s) = %s\n", candidate, secreto);
+              printf("SHA256(%s) = %s\n", curr_candidate, secreto);
               found = 1;
             }
           }
@@ -195,16 +196,17 @@ int main(int argc, char **argv)
           sprintf(candidates[i], "%s", candidate);
           next_candidate(candidate, ALPHA);
         }
-#pragma omp parallel for private(hashString) shared(found)
+#pragma omp parallel for private(hashString, curr_candidate) shared(found)
         for (int i = 0; i < CHUNK; i++)
         {
           if (!found)
           {
-            compute_hash(candidates[i], hashString);
+            sprintf(curr_candidate, "%s", candidates[i]);
+            compute_hash(candidates[i], hashString, s);
             if (strcmp(hashString, secreto) == 0)
             {
               printf("PASSWORD FOUND!\n");
-              printf("SHA256(%s) = %s\n", candidates[i], secreto);
+              printf("SHA256(%s) = %s\n", curr_candidate, secreto);
               found = 1;
 #pragma omp flush(found)
             }

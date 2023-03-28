@@ -195,7 +195,8 @@ int main(int argc, char **argv)
         #pragma omp parallel for private(hashString) shared(found, candidate)
         for (int i = 0; i < CHUNK; i++) {
           sprintf(candidates[i], "%s", candidate);
-          next_candidate(candidate, ALPHA);
+          next_candidate(candidate, ALPHA); //HACER QUE EN VEZ DE next (+1) sea +N_procesos.
+                                            //Inicializar un array de candidatas que tengan también estos saltos.
 
           if (!found) {
             compute_hash(candidates[i], hashString);
