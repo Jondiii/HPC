@@ -1,3 +1,4 @@
+// mpicc crackerPabloMPI.c -o cracker -lcrypto
 #include <mpi.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -59,6 +60,7 @@ int main (int argc, char **argv) {
   int index;
   int c;
   int found = 0;
+  int newFound = 0;
 
   opterr = 0;
 
@@ -111,11 +113,6 @@ int main (int argc, char **argv) {
 
 
   int rank, size;
-  
-  MPI_Init(&argc, &argv);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-
 
   if (argv[optind] != NULL) {
     sprintf(secreto, "%s", argv[optind]);
@@ -124,95 +121,111 @@ int main (int argc, char **argv) {
       printf ("Hash: %s\n", secreto);
     }
     
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     // ¿Hay que hacer un ataque de diccionario?
     if (dvalue != NULL) {
-      int cracked = 0;
+    // Sí, cracking por diccionario
+  
       int total = 0;
+      FILE *file;
 
-      if (rank == 0) {
-        // Sí, cracking por diccionario
-        FILE *file;
+      if (rank == 0) { // Rank 0 calcula el total
         file = fopen(dvalue, "r");
         if (file != NULL) {
           // Leemos las claves candidatas y crackeamos...
           while (fscanf(file, "%s\n", candidata) == 1) {
             total++;
-          } 
-          rewind(file);
+            fclose(file);
+          }
         }
-      }
+      } // IGUAL SOBRA
 
       MPI_Bcast(&total, 1, MPI_INT, 0, MPI_COMM_WORLD);
+      
+      char candidatas_dict[total][m+1];
+      char mis_candidatas_dict[total/size][m+1];
 
-      while (!found && cracked < total) {
-
-      char candidatas[10000*size][m+1]; // Con esto evitamos divisiones.
-      char mis_candidatas[10000][m+1];
-
-      if (rank == 0) {
-          for (int i = 0; i < 10000*size; i++) {
-            if (fscanf(file, "%s\n", candidatas[i]) != 1) {
-              break;
-            }
+      if (rank == 0) { // Rank 0 calcula el total
+        file = fopen(dvalue, "r");
+        if (file != NULL) {
+          int i = 0;
+          // Leemos las claves candidatas y crackeamos...
+          while (fscanf(file, "%s\n", candidatas_dict[i]) == 1) {
+            i++;
+            fclose(file);
           }
-      }
+        }
 
-      MPI_Scatter(&candidatas, 10000*(m+1), MPI_CHAR, &mis_candidatas, 10000*(m+1), MPI_CHAR, 0, MPI_COMM_WORLD);
+        MPI_Scatter(&candidatas_dict, (total * (m+1))/size, MPI_CHAR, &mis_candidatas_dict, (total * (m+1))/size, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; found && i < total/size; i++) {
           if (!found) {
-            compute_hash(mis_candidatas[i], hashString);
-            cracked++;
+            compute_hash(mis_candidatas_dict[i], hashString);
+
             if (strcmp(hashString, secreto) == 0) {
               printf("PASSWORD FOUND!\n");
-              printf("md5(%s) = %s\n", candidata, secreto);
+              printf("md5(%s) = %s\n", mis_candidatas_dict[i], secreto);
               found = 1;
             }
           }
-          
+          if (i % 1000 == 0) { // cADA 1000 vueltas miramos a ver si alguien lo ha encontrado
+            MPI_Allreduce(&found, &newFound, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            found = newFound;
+          }
         }
-        
-        MPI_ALLreduce(&cracked, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-        MPI_ALLreduce(&found, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      }
 
-        printf("Keyspace size: %d, Total passwords cracked: %d\n", total, cracked);
-     
-        fclose(file);
-        if (!found) printf("Password not found in file %s!\n", dvalue);
-      } else {
+        if (!found) {
+          printf("Password not found in file %s!\n", dvalue);
+        } else {
         printf("Error: unable to open dict file!\n");
         return 1;
       }
     }
+
     // Si todavía no hemos encontrado la clave, ataque por fuerza bruta...
     if (!found) {
       char candidatas[CHUNK][m+1];
-      
+      char mis_candidatas[CHUNK/size][m+1];
+
       sprintf(candidata, "%c", avalue[0]); // -> Inicializar mejor, teniendo en cuenta n
       
-      while(strlen(candidata) <= m && !found) { 
-        for (int i = 0; i < CHUNK; i++) {
-          sprintf(candidatas[i], "%s", candidata);
-          next(candidata, ALPHA);
+      while(strlen(candidata) <= m && !found) {
+        if (rank == 0) {
+          //Generar claves candidatas del chunk
+          for (int i = 0; i < CHUNK; i++) {
+            sprintf(candidatas[i], "%s", candidata);
+            next(candidata, ALPHA);
+          }
         }
-        for (int i = 0; i < CHUNK; i++) {
+        MPI_Scatter(&candidatas, (CHUNK * (m+1))/size, MPI_CHAR, &mis_candidatas, (CHUNK * (m+1))/size, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+        for (int i = 0; i < CHUNK/size; i++) {
           if (!found) {
-            compute_hash(candidatas[i], hashString);
+        
+            compute_hash(mis_candidatas[i], hashString);
             if (strcmp(hashString, secreto) == 0) {
                 printf("PASSWORD FOUND!\n");
                 printf("md5(%s) = %s\n", candidatas[i], secreto);
                 found = 1;
             }
           }
+          if (i % 1000 == 0) { // cADA 1000 vueltas miramos a ver si alguien lo ha encontrado
+            MPI_Allreduce(&found, &newFound, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            found = newFound;
+            }
+          }
         }
+        if (!found) {
+          printf("PASSWORD NOT FOUND :c\n");
       }
-    }
-    
-  } else {
+    } else {
     printf("Error: hash not found!\n");
     return 1;
   }
-  
   MPI_Finalize();
   return 0;
+    
+  } } } 
