@@ -89,9 +89,9 @@ int main(int argc, char **argv)
     }
 
     // gcc -fopenmp generadorKeys.c -o 2generadorKeys
-    for (int j = 0; j <= 1; j++) {
+    for (int j = 0; j <= 5; j++) {
       //#pragma omp parallel for private(hashString) shared(candidate)
-      #pragma omp parallel for private(candidate, firstTime)
+      #pragma omp parallel for private(candidate) firstprivate(firstTime)
       for (int i = 0; i < CHUNK; i++) {
           if (firstTime) { //Hay que inicializar la variable candidate, que es la que se usa en el cracker principal.
             sprintf(candidate, "%s", candidates[(CHUNK/NTHREADS) * omp_get_thread_num()]);
@@ -104,6 +104,8 @@ int main(int argc, char **argv)
           threadIDs[i] = omp_get_thread_num();
           }
       
+      firstTime = 0;
+
       for (int i = 0; i < CHUNK; i++) {
           printf("T%d-Combinación %d: %s\n", threadIDs[i], i, candidates[i]);
       }
