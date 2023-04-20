@@ -13,27 +13,28 @@
 #define MAXCANDIDATE 256
 #define HASHSIZE 64
 
-#define CHUNK 60
-#define NTHREADS 3
+#define CHUNK 20
+#define NTHREADS 4
 
 void next_candidate2(char *candidate, char *alpha)
 {
   int done = 0;
-  int newPos = 0;;
+  int newPos = 0;
   int nosPasamos = 0;
+  char temp[MAXCANDIDATE];
 
   for (int i = strlen(candidate) - 1; i >= 0; i--)
   {
     int pos = (int)(strchr(alpha, candidate[i]) - alpha);
     // Si nos salimos del alfabeto al hacer el salto, se calcula dónde acabamos.
-    if (pos + NTHREADS > strlen(alpha) -1) {
-      newPos = pos + NTHREADS - (strlen(alpha) -1) - 1; // Ese otro -1 no sé por qué pero hace falta, si no hace un salto de NTHREADS+1
+    if (pos + NTHREADS > strlen(alpha) -1 && !nosPasamos) {
+      newPos = pos + NTHREADS - strlen(alpha);
       candidate[i] = alpha[newPos];
-      nosPasamos = 1;
+      nosPasamos = 1; // No se vuelve a usar nosPasamos hasta la siguiente iteración, si estamos ya en la última esto no vale
   
     } else if (pos != strlen(alpha) - 1) {
       if (nosPasamos) {
-        candidate[i] = alpha[pos + 1]; 
+        candidate[i] = alpha[pos + 1];
         done = 1;
         break;
       }
@@ -48,7 +49,17 @@ void next_candidate2(char *candidate, char *alpha)
   }
   if (!done)
   {
-    sprintf(candidate, "%c%s", alpha[0], candidate);
+    if (omp_get_thread_num() == 0) {
+      printf("CANDIDATE ANTES not DONE: %s\n",candidate);
+    }
+
+    sprintf(temp, "%s", candidate);
+
+    sprintf(candidate, "%c%s", alpha[0], temp);
+
+    if (omp_get_thread_num() == 0) {
+      printf("CANDIDATE LUEGO not DONE: %s\n",candidate);
+    } 
   }
 }
 
@@ -89,7 +100,7 @@ int main(int argc, char **argv)
     }
 
     // gcc -fopenmp generadorKeys.c -o 2generadorKeys
-    for (int j = 0; j <= 5; j++) {
+    for (int j = 0; j <= 0; j++) {
       //#pragma omp parallel for private(hashString) shared(candidate)
       #pragma omp parallel for private(candidate) firstprivate(firstTime)
       for (int i = 0; i < CHUNK; i++) {

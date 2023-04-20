@@ -1,0 +1,13 @@
+./crackerParalelo 72b289ec78e0a928c565480a435453e30acb92eddb3b78ff168b28737cf6a849
+echo ""
+
+./crackerParalelo 8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4
+echo ""
+
+./crackerParalelo ec77807ae750d94151d4ff049868ba2719ff6d24fd87d96ffef72fd56d58cf82
+echo ""
+
+./crackerParalelo 78032858b52002ee5de86799f5769bccb699bd668d7de566073fea3b308c82f6
+echo ""
+
+./crackerParalelo 0369a36fe856043f6475e9da1a38e9b406df859bf6f23ca56b9e14722d7e4c1e
